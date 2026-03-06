@@ -1,0 +1,928 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes" />
+  <title>Sahyadri — Infrastructure: Network Architecture & Nodes</title>
+  <meta name="description" content="Sahyadri Network Infrastructure – validator nodes, full nodes, RPC nodes, archive nodes, global distribution, and security." />
+  <!-- Original fonts: Inter + Palatino -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <!-- Font Awesome for minimal icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <style>
+    /* ========== RESET & VARIABLES ========== */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      --orange: #F7931A;
+      --orange-dark: #e06f00;
+      --orange-light: #fff1e0;
+      --bg: #ffffff;
+      --bg-alt: #fafafa;
+      --text: #0f0f0f;
+      --text-muted: #6b7a8f;
+      --border: #eaeef2;
+      --shadow: 0 20px 40px -12px rgba(0,0,0,0.08);
+      --shadow-hover: 0 30px 50px -20px rgba(247,147,26,0.15);
+      --radius: 20px;
+      --max-width: 1280px;
+      --transition: all 0.3s cubic-bezier(0.2, 0.9, 0.3, 1);
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, system-ui, sans-serif;
+      color: var(--text);
+      background: var(--bg);
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+      width: 100%;
+    }
+
+    .container {
+      max-width: var(--max-width);
+      margin: 0 auto;
+      padding: 0 32px;
+    }
+
+    /* ========== HEADER ========== */
+    .site-header {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(255,255,255,0.98);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .header-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 80px;
+      max-width: var(--max-width);
+      margin: 0 auto;
+      padding: 0 20px;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      text-decoration: none;
+    }
+
+    .logo-icon {
+      width: 44px;
+      height: 44px;
+      background: linear-gradient(135deg, var(--orange), var(--orange-dark));
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: var(--transition);
+      box-shadow: 0 8px 16px -8px rgba(247,147,26,0.3);
+      overflow: hidden;
+    }
+
+    .logo-icon img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .logo-icon:hover {
+      transform: rotate(5deg) scale(1.03);
+    }
+
+    .logo-text {
+      font-weight: 700;
+      font-size: 1.3rem;
+      letter-spacing: -0.3px;
+      color: var(--text);
+    }
+
+    .nav {
+      display: flex;
+      gap: 20px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .nav a {
+      color: var(--text);
+      text-decoration: none;
+      font-weight: 500;
+      font-size: 0.9rem;
+      transition: color 0.2s;
+      position: relative;
+      white-space: nowrap;
+    }
+
+    .nav a::after {
+      content: '';
+      position: absolute;
+      bottom: -4px;
+      left: 0;
+      width: 0;
+      height: 2px;
+      background: var(--orange);
+      transition: width 0.2s;
+    }
+
+    .nav a:hover {
+      color: var(--orange);
+    }
+
+    .nav a:hover::after {
+      width: 100%;
+    }
+
+    .nav a.active {
+      color: var(--orange);
+      font-weight: 600;
+    }
+
+    .nav a.active::after {
+      width: 100%;
+    }
+
+    .nav-cta {
+      background: var(--orange);
+      color: white !important;
+      padding: 8px 18px;
+      border-radius: 40px;
+      font-weight: 600 !important;
+      box-shadow: 0 8px 16px -8px rgba(247,147,26,0.3);
+    }
+
+    .nav-cta:hover {
+      background: var(--orange-dark);
+      transform: translateY(-2px);
+    }
+
+    .nav-cta::after {
+      display: none !important;
+    }
+
+    /* ========== HAMBURGER MENU ========== */
+    .nav-toggle {
+      display: none;
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 8px;
+      z-index: 201;
+    }
+
+    .nav-toggle span {
+      display: block;
+      width: 22px;
+      height: 2px;
+      background: var(--text);
+      margin: 5px 0;
+      transition: var(--transition);
+    }
+
+    .mobile-menu-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100vh;
+      background: rgba(0,0,0,0.5);
+      z-index: 199;
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.3s ease, visibility 0.3s ease;
+      backdrop-filter: blur(3px);
+    }
+
+    .mobile-menu-overlay.open {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .mobile-menu {
+      position: fixed;
+      top: -100vh;
+      left: 0;
+      width: 100%;
+      height: 100vh;
+      background: #0a0a0a;
+      z-index: 200;
+      transition: top 0.5s cubic-bezier(0.2, 0.9, 0.3, 1);
+      overflow-y: auto;
+      padding: 80px 40px 40px;
+      box-shadow: 0 5px 20px rgba(0,0,0,0.5);
+    }
+
+    .mobile-menu.open {
+      top: 0;
+    }
+
+    .mobile-close {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      background: #1a1a1a;
+      border: none;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      font-size: 1.5rem;
+      cursor: pointer;
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+      z-index: 202;
+    }
+
+    .mobile-close:hover {
+      background: var(--orange);
+      color: white;
+      transform: rotate(90deg);
+    }
+
+    .mobile-nav-section {
+      margin-bottom: 28px;
+      max-width: 600px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .mobile-nav-title {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #a0a0a0;
+      margin-bottom: 12px;
+      font-weight: 600;
+    }
+
+    .dropdown-toggle {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+      background: none;
+      border: none;
+      padding: 10px 0;
+      font-size: 1rem;
+      font-weight: 500;
+      color: white;
+      cursor: pointer;
+      border-bottom: 1px solid #333;
+      transition: color 0.2s;
+    }
+
+    .dropdown-toggle:hover {
+      color: var(--orange);
+    }
+
+    .dropdown-menu {
+      display: none;
+      background: #1a1a1a;
+      border-radius: 10px;
+      padding: 8px;
+      margin: 8px 0 12px;
+    }
+
+    .dropdown-menu.open {
+      display: block;
+      animation: slideDown 0.3s ease;
+    }
+
+    .dropdown-menu a {
+      display: block;
+      padding: 10px 14px;
+      color: #e0e0e0;
+      text-decoration: none;
+      font-size: 0.95rem;
+      border-radius: 6px;
+      transition: background 0.2s, color 0.2s;
+    }
+
+    .dropdown-menu a:hover {
+      background: var(--orange);
+      color: white;
+    }
+
+    .normal-links {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .normal-links a {
+      color: white;
+      text-decoration: none;
+      font-size: 1rem;
+      padding: 10px 0;
+      border-bottom: 1px solid #333;
+      transition: color 0.2s, padding-left 0.2s;
+    }
+
+    .normal-links a:hover {
+      color: var(--orange);
+      padding-left: 8px;
+    }
+
+    .normal-links:first-of-type a {
+      font-weight: 600;
+      color: var(--orange);
+    }
+
+    /* ========== FOOTER ========== */
+    .site-footer {
+      background: #0a0a0a;
+      border-top: 1px solid #1a1a1a;
+      padding: 60px 0 30px;
+      margin-top: 50px;
+      color: #ffffff;
+      width: 100%;
+    }
+
+    .site-footer .container {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 0 32px;
+    }
+
+    .footer-grid {
+      display: flex;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 40px;
+      margin-bottom: 50px;
+    }
+
+    .footer-col {
+      flex: 1;
+      min-width: 200px;
+    }
+
+    .footer-title {
+      font-size: 0.85rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #a0a0a0;
+      margin-bottom: 20px;
+    }
+
+    .footer-links {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+
+    .footer-links li {
+      margin-bottom: 10px;
+    }
+
+    .footer-links a {
+      color: #ffffff;
+      text-decoration: none;
+      font-size: 0.9rem;
+      transition: color 0.2s ease;
+      opacity: 0.8;
+      display: inline-block;
+    }
+
+    .footer-links a:hover {
+      color: #F7931A;
+      opacity: 1;
+    }
+
+    .footer-bottom {
+      border-top: 1px solid #1a1a1a;
+      padding-top: 30px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      color: #a0a0a0;
+      font-size: 0.85rem;
+    }
+
+    .footer-social {
+      display: flex;
+      gap: 24px;
+    }
+
+    .footer-social a {
+      color: #a0a0a0;
+      text-decoration: none;
+      font-size: 1rem;
+      transition: color 0.2s ease;
+    }
+
+    .footer-social a:hover {
+      color: #F7931A;
+    }
+
+    /* ========== RESPONSIVE ========== */
+    @media (max-width: 1000px) {
+      .nav { display: none; }
+      .nav-toggle { display: block; }
+      .mobile-menu { padding: 80px 20px 40px; }
+      .footer-grid { gap: 30px; }
+      .footer-col { flex: 0 0 calc(50% - 15px); }
+    }
+
+    @media (max-width: 600px) {
+      .footer-col { flex: 0 0 100%; }
+      .footer-bottom { flex-direction: column; gap: 15px; text-align: center; }
+      .footer-social { justify-content: center; }
+    }
+
+    /* ========== INFRASTRUCTURE PAGE STYLES ========== */
+    .infra-container {
+      max-width: 1000px;
+      margin: 0 auto;
+      padding: 0 32px 4rem;
+    }
+
+    .page-header {
+      padding: 60px 0 30px;
+      text-align: center;
+    }
+
+    .page-title {
+      font-family: 'Inter', sans-serif;
+      font-size: 3.2rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      margin-bottom: 1rem;
+    }
+
+    .page-title span {
+      color: var(--orange);
+    }
+
+    .page-subtitle {
+      font-family: 'Palatino', serif;
+      font-size: 1.2rem;
+      color: var(--text-muted);
+      max-width: 700px;
+      margin: 0 auto;
+      line-height: 1.7;
+    }
+
+    .hero-text {
+      font-family: 'Palatino', serif;
+      font-size: 1.1rem;
+      color: #2a2a2a;
+      line-height: 1.7;
+      margin-top: 1.5rem;
+      text-align: center;
+      max-width: 800px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .section {
+      padding: 50px 0;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .section:last-of-type {
+      border-bottom: none;
+    }
+
+    .section-title {
+      font-family: 'Inter', sans-serif;
+      font-size: 2rem;
+      font-weight: 700;
+      margin-bottom: 1.5rem;
+      border-left: 6px solid var(--orange);
+      padding-left: 1.2rem;
+    }
+
+    .section-text {
+      font-family: 'Palatino', serif;
+      font-size: 1.1rem;
+      color: #2a2a2a;
+      line-height: 1.7;
+      margin-bottom: 1.5rem;
+    }
+
+    .nodes-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 30px;
+      margin: 40px 0;
+    }
+
+    .node-card {
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 30px 25px;
+      transition: var(--transition);
+    }
+
+    .node-card:hover {
+      border-color: var(--orange-light);
+      box-shadow: 0 15px 30px -15px rgba(247,147,26,0.15);
+    }
+
+    .node-icon {
+      font-size: 2rem;
+      color: var(--orange);
+      margin-bottom: 20px;
+    }
+
+    .node-card h3 {
+      font-family: 'Inter', sans-serif;
+      font-weight: 600;
+      font-size: 1.3rem;
+      margin-bottom: 15px;
+    }
+
+    .node-card p {
+      font-family: 'Palatino', serif;
+      color: var(--text-muted);
+      line-height: 1.6;
+    }
+
+    .features-list {
+      list-style: none;
+      margin: 20px 0;
+    }
+
+    .features-list li {
+      font-family: 'Palatino', serif;
+      font-size: 1.1rem;
+      margin-bottom: 12px;
+      padding-left: 2rem;
+      position: relative;
+    }
+
+    .features-list li::before {
+      content: "•";
+      color: var(--orange);
+      font-weight: bold;
+      font-size: 1.5rem;
+      position: absolute;
+      left: 0;
+      top: -5px;
+    }
+
+    .pill-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 15px;
+      margin: 25px 0;
+    }
+
+    .pill {
+      background: var(--orange-light);
+      color: var(--orange-dark);
+      padding: 8px 18px;
+      border-radius: 40px;
+      font-size: 0.95rem;
+      font-weight: 500;
+    }
+
+    .highlight-box {
+      background: var(--bg-alt);
+      border-radius: 24px;
+      padding: 40px;
+      margin: 40px 0;
+      text-align: center;
+    }
+
+    .highlight-box p {
+      font-family: 'Palatino', serif;
+      font-size: 1.1rem;
+      color: var(--text-muted);
+      max-width: 700px;
+      margin: 0 auto;
+    }
+
+    .cta-section {
+      background: var(--bg-alt);
+      border-radius: 30px;
+      padding: 60px 40px;
+      text-align: center;
+      margin: 50px 0 30px;
+    }
+
+    .cta-section h2 {
+      font-family: 'Inter', sans-serif;
+      font-size: 2.2rem;
+      font-weight: 700;
+      margin-bottom: 1rem;
+    }
+
+    .cta-section p {
+      font-family: 'Palatino', serif;
+      font-size: 1.2rem;
+      color: var(--text-muted);
+      margin-bottom: 2rem;
+    }
+
+    .cta-buttons {
+      display: flex;
+      gap: 20px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .btn-primary {
+      background: var(--orange);
+      color: white;
+      padding: 14px 36px;
+      border-radius: 50px;
+      text-decoration: none;
+      font-weight: 600;
+      border: 2px solid var(--orange);
+      transition: all 0.2s;
+    }
+
+    .btn-primary:hover {
+      background: var(--orange-dark);
+      border-color: var(--orange-dark);
+    }
+
+    .btn-outline {
+      background: transparent;
+      border: 2px solid var(--orange);
+      color: var(--orange-dark);
+      padding: 14px 36px;
+      border-radius: 50px;
+      text-decoration: none;
+      font-weight: 600;
+      transition: all 0.2s;
+    }
+
+    .btn-outline:hover {
+      background: var(--orange);
+      color: white;
+    }
+
+    /* simple animation */
+    .animate-up {
+      opacity: 0;
+      transform: translateY(30px);
+      transition: opacity 0.8s ease, transform 0.8s ease;
+    }
+
+    .animate-up.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .delay-1 { transition-delay: 0.1s; }
+    .delay-2 { transition-delay: 0.2s; }
+    .delay-3 { transition-delay: 0.3s; }
+
+    @media (max-width: 800px) {
+      .nodes-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 600px) {
+      .page-title {
+        font-size: 2.5rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- HEADER (matching site theme) -->
+  <header class="site-header">
+    <div class="header-inner">
+      <a href="index.html" class="logo">
+        <span class="logo-icon">
+          <img src="https://raw.githubusercontent.com/surajdatir/sahyadri/refs/heads/main/IMG_2305.png" alt="Sahyadri Logo" onerror="this.style.display='none'; this.parentElement.innerHTML='<svg width=\'22\' height=\'22\' viewBox=\'0 0 24 24\'><path d=\'M2 8l3.5 8h13L22 8l-5 3-3-6-3 6-3-6-5 3z\' fill=\'white\'/></svg>'">
+        </span>
+        <span class="logo-text">Sahyadri</span>
+      </a>
+
+      <nav class="nav">
+        <a href="index.html">Home</a>
+        <a href="protocol.html">Protocol</a>
+        <a href="core.html">Core</a>
+        <a href="network.html">Network</a>
+        <a href="vision.html">Vision</a>
+        <a href="features.html">Features</a>
+        <a href="about.html">About</a>
+        <a href="community.html">Community</a>
+        <a href="contact.html">Contact</a>
+        <a href="whitepaper.html" class="nav-cta">Whitepaper</a>
+      </nav>
+
+      <button class="nav-toggle" id="navToggle">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </header>
+
+  <!-- mobile overlay & menu (site) -->
+  <div class="mobile-menu-overlay" id="mobileOverlay"></div>
+  <div class="mobile-menu" id="mobileMenu">
+    <button class="mobile-close" id="closeMobile">×</button>
+    <div class="normal-links" style="margin-bottom:20px"><a href="index.html">Home</a></div>
+    <div class="mobile-nav-section">
+      <div class="mobile-nav-title">INTRODUCTION</div>
+      <div class="dropdown">
+        <button class="dropdown-toggle" id="introToggle">Introduction <span class="arrow">▼</span></button>
+        <div class="dropdown-menu" id="introMenu">
+          <a href="individuals.html">Individuals</a>
+          <a href="businesses.html">Businesses</a>
+          <a href="how-it-works.html">How it works</a>
+          <a href="whitepaper.html">White paper</a>
+        </div>
+      </div>
+    </div>
+    <div class="mobile-nav-section"><div class="mobile-nav-title">CHAIN</div><div class="dropdown"><button class="dropdown-toggle" id="chainToggle">Chain <span class="arrow">▼</span></button><div class="dropdown-menu" id="chainMenu"><a href="protocol.html">Protocol</a><a href="vision.html">Vision</a><a href="network.html">Network</a><a href="core.html">Core</a><a href="roadmap.html">Roadmap</a></div></div></div>
+    <div class="mobile-nav-section"><div class="mobile-nav-title">RESOURCES</div><div class="dropdown"><button class="dropdown-toggle" id="resourcesToggle">Resources <span class="arrow">▼</span></button><div class="dropdown-menu" id="resourcesMenu"><a href="exchanges.html">Exchanges</a><a href="community.html">Community</a><a href="documentation.html">Documentation</a><a href="vocabulary.html">Vocabulary</a><a href="events.html">Events</a><a href="core.html">Sahyadri Core</a></div></div></div>
+    <div class="mobile-nav-section"><div class="mobile-nav-title">INNOVATION</div><div class="normal-links"><a href="innovation.html">Innovation</a><a href="participate.html">Participate</a><a href="faq.html">FAQ</a></div></div>
+    <div class="mobile-nav-section"><div class="mobile-nav-title">CONNECT</div><div class="normal-links"><a href="about.html">About</a><a href="contact.html">Contact</a><a href="developers.html">Developers</a></div></div>
+  </div>
+
+  <!-- MAIN CONTENT -->
+  <main class="infra-container">
+    <!-- 1. Hero Section -->
+    <div class="page-header animate-up visible">
+      <h1 class="page-title">Sahyadri <span>Network Infrastructure</span></h1>
+      <p class="page-subtitle">High‑performance decentralized infrastructure designed for scalability, security, and resilience.</p>
+      <p class="hero-text">The Sahyadri network runs on a distributed infrastructure powered by independent nodes, validators, and contributors across the world. Our architecture ensures high uptime, fast transaction processing, and censorship resistance.</p>
+    </div>
+
+    <!-- 2. Core Infrastructure -->
+    <section class="section animate-up delay-1">
+      <h2 class="section-title">Core Infrastructure</h2>
+      <div class="nodes-grid">
+        <div class="node-card">
+          <div class="node-icon"><i class="fas fa-check-circle"></i></div>
+          <h3>Validator Nodes</h3>
+          <p>Network security maintain karte hain. Transactions verify karte hain. Blocks produce karte hain.</p>
+        </div>
+        <div class="node-card">
+          <div class="node-icon"><i class="fas fa-database"></i></div>
+          <h3>Full Nodes</h3>
+          <p>Blockchain ka complete copy store karte hain. Network data distribute karte hain.</p>
+        </div>
+        <div class="node-card">
+          <div class="node-icon"><i class="fas fa-cloud"></i></div>
+          <h3>RPC Nodes</h3>
+          <p>Developers aur applications ko blockchain access provide karte hain.</p>
+        </div>
+        <div class="node-card">
+          <div class="node-icon"><i class="fas fa-archive"></i></div>
+          <h3>Archive Nodes</h3>
+          <p>Complete historical blockchain data maintain karte hain.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3. Network Architecture -->
+    <section class="section animate-up delay-2">
+      <h2 class="section-title">Network Architecture</h2>
+      <div class="pill-group">
+        <span class="pill">Peer‑to‑Peer network</span>
+        <span class="pill">Distributed node structure</span>
+        <span class="pill">Fault tolerant design</span>
+        <span class="pill">High availability infrastructure</span>
+      </div>
+      <p class="section-text">The Sahyadri network operates on a peer‑to‑peer architecture where nodes communicate directly with each other, eliminating central points of failure and improving network resilience.</p>
+    </section>
+
+    <!-- 4. Performance -->
+    <section class="section animate-up delay-3">
+      <h2 class="section-title">Performance</h2>
+      <ul class="features-list">
+        <li>High throughput transactions</li>
+        <li>Low latency block confirmation</li>
+        <li>Scalable infrastructure</li>
+        <li>Optimized consensus mechanism</li>
+      </ul>
+    </section>
+
+    <!-- 5. Security -->
+    <section class="section animate-up delay-1">
+      <h2 class="section-title">Security</h2>
+      <ul class="features-list">
+        <li>Cryptographic security</li>
+        <li>Decentralized validation</li>
+        <li>Node reputation system</li>
+        <li>Network monitoring</li>
+      </ul>
+      <p class="section-text">Security is built into every layer of the Sahyadri infrastructure to ensure data integrity and trustless operation.</p>
+    </section>
+
+    <!-- 6. Global Node Network -->
+    <section class="section animate-up delay-2">
+      <h2 class="section-title">Global Node Network</h2>
+      <p class="section-text">Nodes in the Sahyadri network are operated by independent participants across multiple geographic regions, ensuring global redundancy and high network reliability.</p>
+    </section>
+
+    <!-- 7. Infrastructure Participation -->
+    <section class="section animate-up delay-3">
+      <h2 class="section-title">Infrastructure Participation</h2>
+      <p class="section-text">Log join kaise kare.</p>
+      <ul class="features-list">
+        <li>Run a node</li>
+        <li>Become a validator</li>
+        <li>Provide infrastructure support</li>
+      </ul>
+      <div class="cta-buttons" style="justify-content: flex-start; margin-top: 30px;">
+        <a href="full-node.html" class="btn-primary">Run a Node</a>
+        <a href="documentation.html" class="btn-outline">Validator Guide</a>
+        <a href="whitepaper.html" class="btn-outline">Technical Documentation</a>
+      </div>
+    </section>
+
+    <!-- 8. Call to Action -->
+    <div class="cta-section animate-up delay-1">
+      <h2>Build the Infrastructure of the Future</h2>
+      <p>Join the Sahyadri network and contribute to a decentralized infrastructure powering the next generation of applications.</p>
+      <div class="cta-buttons">
+        <a href="full-node.html" class="btn-primary">Run a Node</a>
+        <a href="documentation.html" class="btn-outline">Explore Docs</a>
+      </div>
+    </div>
+  </main>
+
+  <!-- FOOTER -->
+  <footer class="site-footer">
+    <div class="container">
+      <div class="footer-grid">
+        <div class="footer-col"><h4 class="footer-title">Introduction</h4><ul class="footer-links"><li><a href="individuals.html">Individuals</a></li><li><a href="businesses.html">Businesses</a></li><li><a href="developers.html">Developers</a></li><li><a href="getting-started.html">Getting started</a></li><li><a href="how-it-works.html">How it works</a></li><li><a href="you-need-to-know.html">You need to know</a></li><li><a href="whitepaper.html">Whitepaper</a></li></ul></div>
+        <div class="footer-col"><h4 class="footer-title">Resources</h4><ul class="footer-links"><li><a href="resources.html">Resources</a></li><li><a href="exchanges.html">Exchanges</a></li><li><a href="community.html">Community</a></li><li><a href="vocabulary.html">Vocabulary</a></li><li><a href="events.html">Events</a></li><li><a href="core.html">Sahyadri Core</a></li></ul></div>
+        <div class="footer-col"><h4 class="footer-title">Participate</h4><ul class="footer-links"><li><a href="support-sahyadri.html">Support Sahyadri</a></li><li><a href="buy.html">Buy Sahyadri</a></li><li><a href="sell.html">Sell Sahyadri</a></li><li><a href="full-node.html">Running a full node</a></li><li><a href="development.html">Development</a></li></ul></div>
+        <div class="footer-col"><h4 class="footer-title">Other</h4><ul class="footer-links"><li><a href="avoid-scams.html">Avoid Scams</a></li><li><a href="legal.html">Legal</a></li><li><a href="privacy.html">Privacy Policy</a></li><li><a href="press.html">Press</a></li><li><a href="about.html">About</a></li><li><a href="blog.html">Blog</a></li></ul></div>
+      </div>
+      <div class="footer-bottom">
+        <div>© 2026 Sahyadri.org. All rights reserved.</div>
+        <div class="footer-social"><a href="https://x.com/sahyadricore?s=21" target="_blank">𝕏</a><a href="https://discord.gg/vnehg5SFU" target="_blank">Discord</a><a href="https://github.com/sahyadri-core" target="_blank">GitHub</a></div>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    (function() {
+      // Mobile menu toggle (for site)
+      const navToggle = document.getElementById('navToggle');
+      const mobileMenu = document.getElementById('mobileMenu');
+      const mobileOverlay = document.getElementById('mobileOverlay');
+      const closeMobile = document.getElementById('closeMobile');
+
+      function openMobile() { mobileMenu.classList.add('open'); mobileOverlay.classList.add('open'); document.body.style.overflow = 'hidden'; }
+      function closeMobileMenu() { mobileMenu.classList.remove('open'); mobileOverlay.classList.remove('open'); document.body.style.overflow = ''; }
+
+      navToggle.addEventListener('click', openMobile);
+      closeMobile.addEventListener('click', closeMobileMenu);
+      mobileOverlay.addEventListener('click', closeMobileMenu);
+      document.querySelectorAll('.normal-links a, .dropdown-menu a').forEach(link => link.addEventListener('click', closeMobileMenu));
+
+      // Site dropdowns
+      const introToggle = document.getElementById('introToggle');
+      const introMenu = document.getElementById('introMenu');
+      const chainToggle = document.getElementById('chainToggle');
+      const chainMenu = document.getElementById('chainMenu');
+      const resourcesToggle = document.getElementById('resourcesToggle');
+      const resourcesMenu = document.getElementById('resourcesMenu');
+
+      function closeAllDropdowns() {
+        if (introMenu) introMenu.classList.remove('open');
+        if (chainMenu) chainMenu.classList.remove('open');
+        if (resourcesMenu) resourcesMenu.classList.remove('open');
+        if (introToggle) introToggle.querySelector('.arrow').textContent = '▼';
+        if (chainToggle) chainToggle.querySelector('.arrow').textContent = '▼';
+        if (resourcesToggle) resourcesToggle.querySelector('.arrow').textContent = '▼';
+      }
+
+      function setupDropdown(btn, menu) {
+        if (!btn || !menu) return;
+        btn.addEventListener('click', function(e) {
+          e.preventDefault(); e.stopPropagation();
+          const isOpen = menu.classList.contains('open');
+          closeAllDropdowns();
+          if (!isOpen) { menu.classList.add('open'); this.querySelector('.arrow').textContent = '▲'; }
+        });
+      }
+      setupDropdown(introToggle, introMenu);
+      setupDropdown(chainToggle, chainMenu);
+      setupDropdown(resourcesToggle, resourcesMenu);
+
+      // Scroll animation observer
+      const animated = document.querySelectorAll('.animate-up');
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
+      }, { threshold: 0.2 });
+      animated.forEach(el => observer.observe(el));
+    })();
+  </script>
+</body>
+</html>
